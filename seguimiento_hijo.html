@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Seguimiento Hijo</title>
+    <style>
+        :root {
+            --naranja-claro: #fff5ed;
+            --borde-suave: #f0e4d7;
+        }
+
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #fff; overflow-x: hidden; }
+        
+        /* HEADER */
+        .header { 
+            width: 100%; padding: 15px; background: var(--naranja-claro); color: #444; 
+            display: flex; align-items: center; justify-content: space-between; 
+            box-sizing: border-box; border-bottom: 1px solid var(--borde-suave);
+        }
+
+        .btn-menu { 
+            background: #fff; color: #000; border: 1px solid #ddd; 
+            padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            position: fixed; top: 0; left: -280px; width: 280px; height: 100%;
+            background: var(--naranja-claro); transition: 0.3s; z-index: 1000;
+            padding-top: 20px; box-sizing: border-box; border-right: 1px solid var(--borde-suave);
+        }
+        .sidebar.active { left: 0; }
+        .sidebar a {
+            display: block; padding: 15px 25px; color: #555; text-decoration: none;
+            border-bottom: 1px solid var(--borde-suave); font-size: 15px;
+        }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); display: none; z-index: 999; }
+        .overlay.active { display: block; }
+
+        /* CONTENIDO SELECCIÓN HIJOS */
+        .container { width: 90%; max-width: 500px; margin: 30px auto; }
+        h2 { text-align: center; color: #333; font-weight: 300; margin-bottom: 30px; }
+        
+        .hijo-item {
+            display: flex; align-items: center; background: #fff;
+            padding: 15px; border-radius: 12px; margin-bottom: 15px;
+            border: 1px solid var(--borde-suave); cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .hijo-item:active { transform: scale(0.98); }
+        .hijo-item:hover { box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+
+        .hijo-img { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; margin-right: 15px; border: 1px solid #ddd; background: #eee; }
+        .hijo-info { flex-grow: 1; }
+        .hijo-nombre { font-weight: bold; font-size: 16px; color: #222; }
+        .hijo-uid { font-size: 10px; color: #aaa; text-transform: uppercase; }
+        
+        .arrow { color: #ccc; font-size: 20px; }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar" class="sidebar">
+        <div id="menu-options"></div>
+        <a href="#" style="color: #d32f2f;" id="btn-logout">Cerrar Sesión</a>
+    </div>
+    <div id="overlay" class="overlay"></div>
+
+    <div class="header">
+        <button class="btn-menu" id="open-menu">MENÚ</button>
+        <span style="font-weight: bold;">SEGUIMIENTO</span>
+        <div style="width: 60px;"></div>
+    </div>
+
+    <div class="container">
+        <h2>Seleccione Hijo</h2>
+        <div id="lista-hijos">
+            </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCAWM6KyEYGozVP6JfY_EpGv6kGxjWzzPk",
+            authDomain: "studio-4610881504-8afcf.firebaseapp.com",
+            projectId: "studio-4610881504-8afcf",
+            storageBucket: "studio-4610881504-8afcf.firebasestorage.app",
+            messagingSenderId: "330090444658",
+            appId: "1:330090444658:web:0ab0c98f2ab0235af74feb"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        const uid = new URLSearchParams(window.location.search).get('uid');
+        if (!uid) window.location.href = "index.html";
+
+        // UI Elements
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        const menuOptions = document.getElementById('menu-options');
+        const listaHijos = document.getElementById('lista-hijos');
+
+        document.getElementById('open-menu').onclick = () => { sidebar.classList.add('active'); overlay.classList.add('active'); };
+        overlay.onclick = () => { sidebar.classList.remove('active'); overlay.classList.remove('active'); };
+
+        // 1. CARGAR DATOS DEL PADRE/MADRE (Roles y Alumnos)
+        onSnapshot(doc(db, "users", uid), async (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                
+                // Lógica Sidebar (Roles)
+                const roles = data.roles || [];
+                let menuHtml = "";
+                if (roles.includes("Responsable Legal")) menuHtml += `<a href="seguimiento_hijo.html?uid=${uid}">Seguimiento de mi hijo</a>`;
+                menuHtml += `<a href="mensajeria.html?uid=${uid}">Mensajería</a>`;
+                menuOptions.innerHTML = menuHtml;
+
+                // 2. CARGAR HIJOS ASOCIADOS
+                const hijosUids = data.alumnosAsociados || [];
+                listaHijos.innerHTML = ""; // Limpiar
+
+                for (const hijoUid of hijosUids) {
+                    const hijoDoc = await getDoc(doc(db, "users", hijoUid.trim()));
+                    if (hijoDoc.exists()) {
+                        const hData = hijoDoc.data();
+                        crearItemHijo(hijoUid, hData.displayName || "Sin Nombre", hData.photoURL || "");
+                    }
+                }
+            }
+        });
+
+        function crearItemHijo(id, nombre, foto) {
+            const div = document.createElement('div');
+            div.className = 'hijo-item';
+            div.onclick = () => window.location.href = `vista_hijo.html?uid=${id}`;
+            
+            div.innerHTML = `
+                <img src="${foto}" class="hijo-img" onerror="this.src='https://via.placeholder.com/60?text=H'">
+                <div class="hijo-info">
+                    <div class="hijo-nombre">${nombre}</div>
+                    <div class="hijo-uid">${id}</div>
+                </div>
+                <div class="arrow">›</div>
+            `;
+            listaHijos.appendChild(div);
+        }
+
+        document.getElementById('btn-logout').onclick = () => signOut(auth).then(() => window.location.href = "index.html");
+    </script>
+</body>
+</html>

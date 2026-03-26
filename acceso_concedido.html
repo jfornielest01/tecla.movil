@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Panel de Control</title>
+    <style>
+        :root {
+            --naranja-claro: #fff5ed;
+            --borde-suave: #f0e4d7;
+        }
+
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #fff; overflow-x: hidden; }
+        
+        .header { 
+            width: 100%; padding: 15px; 
+            background: var(--naranja-claro); 
+            color: #444; 
+            display: flex; align-items: center; justify-content: space-between; 
+            box-sizing: border-box;
+            border-bottom: 1px solid var(--borde-suave);
+        }
+
+        .btn-menu { 
+            background: #fff; color: #000; border: 1px solid #ddd; 
+            padding: 8px 15px; border-radius: 6px; font-weight: bold; 
+            cursor: pointer; font-size: 13px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .sidebar {
+            position: fixed; top: 0; left: -280px; width: 280px; height: 100%;
+            background: var(--naranja-claro); 
+            transition: 0.3s; z-index: 1000;
+            padding-top: 20px; box-sizing: border-box;
+            border-right: 1px solid var(--borde-suave);
+            display: flex; flex-direction: column;
+        }
+        .sidebar.active { left: 0; }
+        
+        .sidebar-title { padding: 20px; font-weight: bold; color: #888; font-size: 12px; text-transform: uppercase; }
+        
+        .sidebar a {
+            display: block; padding: 15px 25px; color: #555; text-decoration: none;
+            border-bottom: 1px solid var(--borde-suave); font-size: 15px; font-weight: 500;
+        }
+        .sidebar a:hover { background: #fff; }
+        
+        .overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.3); display: none; z-index: 999;
+        }
+        .overlay.active { display: block; }
+
+        .card { width: 90%; max-width: 400px; margin: 30px auto; text-align: center; }
+        .img-container { 
+            width: 110px; height: 110px; border-radius: 50%; background: #fafafa; 
+            margin: 0 auto 15px; border: 2px solid #333; overflow: hidden; 
+        }
+        #profile-img { width: 100%; height: 100%; object-fit: cover; }
+        
+        input { 
+            width: 100%; border: none; border-bottom: 2px solid #eee; 
+            padding: 12px 0; font-size: 16px; outline: none; margin-bottom: 25px;
+        }
+        input:focus { border-bottom-color: #f60; }
+        
+        .btn-save { 
+            width: 100%; padding: 15px; background: #000; color: #fff; 
+            border: none; border-radius: 8px; font-weight: bold; cursor: pointer; 
+        }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar" class="sidebar">
+        <div class="sidebar-title">Opciones disponibles</div>
+        <div id="menu-options"></div>
+        <a href="#" style="margin-top: auto; color: #d32f2f; border-top: 1px solid #eee;" id="btn-logout">Cerrar Sesión</a>
+    </div>
+    <div id="overlay" class="overlay"></div>
+
+    <div class="header">
+        <button class="btn-menu" id="open-menu">MENÚ</button>
+        <span style="font-weight: bold; letter-spacing: 1px;">GESTIÓN</span>
+        <div style="width: 60px;"></div>
+    </div>
+
+    <div class="card">
+        <div class="img-container">
+            <img src="" id="profile-img" onerror="this.style.display='none'">
+        </div>
+        
+        <input type="text" id="display-name" placeholder="Tu nombre">
+        <input type="text" id="photo-url" placeholder="URL de la imagen">
+        
+        <button class="btn-save" id="save-btn">ACTUALIZAR PERFIL</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCAWM6KyEYGozVP6JfY_EpGv6kGxjWzzPk",
+            authDomain: "studio-4610881504-8afcf.firebaseapp.com",
+            projectId: "studio-4610881504-8afcf",
+            storageBucket: "studio-4610881504-8afcf.firebasestorage.app",
+            messagingSenderId: "330090444658",
+            appId: "1:330090444658:web:0ab0c98f2ab0235af74feb"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        const uid = new URLSearchParams(window.location.search).get('uid');
+        if (!uid) window.location.href = "index.html";
+
+        const userDoc = doc(db, "users", uid);
+
+        // Sidebar logic
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        document.getElementById('open-menu').onclick = () => { sidebar.classList.add('active'); overlay.classList.add('active'); };
+        overlay.onclick = () => { sidebar.classList.remove('active'); overlay.classList.remove('active'); };
+
+        // Firestore Listen
+        onSnapshot(userDoc, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                
+                // Perfil
+                document.getElementById('display-name').value = data.displayName || "";
+                document.getElementById('photo-url').value = data.photoURL || "";
+                if(data.photoURL) {
+                    const img = document.getElementById('profile-img');
+                    img.src = data.photoURL;
+                    img.style.display = 'block';
+                }
+
+                // Sidebar por roles (CON UID SIEMPRE)
+                const roles = data.roles || [];
+                const menuBox = document.getElementById('menu-options');
+                let html = "";
+
+                // Redirigir siempre con ?uid=...
+                if (roles.includes("Responsable Legal")) {
+                    html += `<a href="/seguimiento_hijo.html?uid=${uid}">Seguimiento de mi hijo</a>`;
+                }
+                
+                html += `<a href="/mensajeria.html?uid=${uid}">Mensajería</a>`;
+                menuBox.innerHTML = html;
+            }
+        });
+
+        // Save
+        document.getElementById('save-btn').onclick = async () => {
+            await updateDoc(userDoc, {
+                displayName: document.getElementById('display-name').value,
+                photoURL: document.getElementById('photo-url').value
+            });
+            alert("Datos actualizados correctamente");
+        };
+
+        // Logout
+        document.getElementById('btn-logout').onclick = () => {
+            signOut(auth).then(() => window.location.href = "index.html");
+        };
+    </script>
+</body>
+</html>

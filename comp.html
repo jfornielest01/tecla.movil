@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Comportamiento</title>
+    <style>
+        :root {
+            --naranja-claro: #fff5ed;
+            --borde-suave: #f0e4d7;
+            --positivo: #4caf50;
+            --negativo: #f44336;
+        }
+
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #fff; }
+        
+        .header { 
+            width: 100%; padding: 15px; background: var(--naranja-claro); color: #444; 
+            display: flex; align-items: center; justify-content: space-between; 
+            box-sizing: border-box; border-bottom: 1px solid var(--borde-suave);
+        }
+
+        .btn-back { background: #fff; border: 1px solid #ddd; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+
+        .container { width: 90%; max-width: 500px; margin: 20px auto; text-align: center; }
+
+        .alumno-card { padding: 20px; margin-bottom: 20px; }
+        .alumno-img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid var(--borde-suave); }
+        .alumno-nombre { display: block; margin-top: 10px; font-weight: bold; font-size: 18px; }
+
+        /* BOTONES GRANDES TIPO APP */
+        .grid-acciones { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        
+        .btn-accion {
+            padding: 25px 10px; border-radius: 15px; border: 2px solid transparent;
+            font-weight: bold; font-size: 14px; cursor: pointer; transition: 0.2s;
+            display: flex; flex-direction: column; align-items: center; gap: 10px;
+        }
+
+        .btn-pos { background: #e8f5e9; color: var(--positivo); border-color: #c8e6c9; }
+        .btn-neg { background: #ffebee; color: var(--negativo); border-color: #ffcdd2; }
+
+        /* ESTADO DESACTIVADO */
+        .btn-accion:disabled { opacity: 0.3; filter: grayscale(1); cursor: not-allowed; }
+        .btn-accion.selected { border-color: currentColor; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+
+        .msg-bloqueo { margin-top: 20px; font-size: 13px; color: #999; display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <button class="btn-back" onclick="window.history.back()">‹ Volver</button>
+        <span style="font-weight: bold;">COMPORTAMIENTO</span>
+        <div style="width: 60px;"></div>
+    </div>
+
+    <div class="container">
+        <div class="alumno-card">
+            <img src="" id="alu-img" class="alumno-img" onerror="this.src='https://via.placeholder.com/80?text=A'">
+            <span id="alu-name" class="alumno-nombre">Cargando...</span>
+        </div>
+
+        <div class="grid-acciones">
+            <button id="btn-positive" class="btn-accion btn-pos" onclick="registrar('positive')">
+                <span style="font-size: 30px;">👍</span>
+                POSITIVO
+            </button>
+            <button id="btn-negative" class="btn-accion btn-neg" onclick="registrar('negative')">
+                <span style="font-size: 30px;">👎</span>
+                NEGATIVO
+            </button>
+        </div>
+
+        <p id="msg-ya-registrado" class="msg-bloqueo">Ya se ha registrado el comportamiento de hoy.</p>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCAWM6KyEYGozVP6JfY_EpGv6kGxjWzzPk",
+            authDomain: "studio-4610881504-8afcf.firebaseapp.com",
+            projectId: "studio-4610881504-8afcf"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const params = new URLSearchParams(window.location.search);
+        const studentId = params.get('uid');
+        const professorId = params.get('profe');
+        const hoy = new Date().toISOString().split('T')[0];
+
+        // 1. CARGAR INFO ALUMNO
+        getDoc(doc(db, "users", studentId)).then(s => {
+            if(s.exists()){
+                document.getElementById('alu-name').innerText = s.data().displayName;
+                if(s.data().photoURL) document.getElementById('alu-img').src = s.data().photoURL;
+            }
+        });
+
+        // 2. COMPROBAR SI YA EXISTE REGISTRO HOY
+        async function verificarHoy() {
+            const q = query(
+                collection(db, "remarks"), 
+                where("studentId", "==", studentId), 
+                where("date", "==", hoy)
+            );
+            const snap = await getDocs(q);
+            
+            if (!snap.empty) {
+                document.getElementById('btn-positive').disabled = true;
+                document.getElementById('btn-negative').disabled = true;
+                document.getElementById('msg-ya-registrado').style.display = "block";
+                
+                // Marcar el que ya está puesto
+                const data = snap.docs[0].data();
+                document.getElementById('btn-' + data.type).classList.add('selected');
+            }
+        }
+        verificarHoy();
+
+        // 3. REGISTRAR (SIN OBSERVACIÓN)
+        window.registrar = async (tipo) => {
+            // Desactivar botones al instante para evitar doble click
+            document.getElementById('btn-positive').disabled = true;
+            document.getElementById('btn-negative').disabled = true;
+
+            try {
+                await addDoc(collection(db, "remarks"), {
+                    academicYearId: "D6HxL93pglVvSPVvrurn",
+                    courseName: "Comportamiento",
+                    date: hoy,
+                    professorId: professorId || "",
+                    studentId: studentId,
+                    type: tipo,
+                    createdAt: serverTimestamp()
+                });
+                location.reload(); // Recargar para mostrar estado bloqueado
+            } catch (e) {
+                console.error(e);
+                document.getElementById('btn-positive').disabled = false;
+                document.getElementById('btn-negative').disabled = false;
+            }
+        };
+    </script>
+</body>
+</html>

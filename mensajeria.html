@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mensajería TECLA</title>
+    <style>
+        :root { --naranja: #fff5ed; --borde: #f0e4d7; --texto: #444; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #fff; color: var(--texto); overflow-x: hidden; }
+        
+        .header { 
+            padding: 15px; background: var(--naranja); display: flex; 
+            align-items: center; justify-content: space-between; border-bottom: 1px solid var(--borde);
+            position: sticky; top: 0; z-index: 10;
+        }
+        .btn-back { background: #fff; border: 1px solid #ddd; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+
+        .tabs { display: flex; border-bottom: 1px solid var(--borde); background: #fff; }
+        .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; font-weight: bold; color: #999; transition: 0.3s; }
+        .tab.active { color: #333; border-bottom: 3px solid #f0ad4e; background: var(--naranja); }
+
+        .container { padding: 20px; max-width: 600px; margin: auto; box-sizing: border-box; }
+        .hidden { display: none; }
+
+        /* FORMULARIO */
+        label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: bold; color: #666; }
+        input, textarea, select { 
+            width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; 
+            border: 1px solid var(--borde); box-sizing: border-box; font-size: 15px; outline: none;
+        }
+        select[multiple] { height: 150px; }
+        .btn-enviar { 
+            width: 100%; background: #4caf50; color: white; border: none; 
+            padding: 16px; border-radius: 12px; font-size: 16px; font-weight: bold; 
+            cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .btn-enviar:active { transform: scale(0.98); }
+
+        /* LISTA MENSAJES */
+        .msg-card { 
+            padding: 15px; border: 1px solid var(--borde); border-radius: 12px; 
+            margin-bottom: 12px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .msg-header { display: flex; justify-content: space-between; font-size: 11px; color: #aaa; margin-bottom: 8px; text-transform: uppercase; }
+        .msg-asunto { font-weight: bold; font-size: 16px; color: #222; display: block; margin-bottom: 5px; }
+        .msg-cont { font-size: 14px; color: #555; line-height: 1.4; margin: 0; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <button class="btn-back" onclick="window.history.back()">‹ Volver</button>
+        <span style="font-weight: bold;">MENSAJERÍA</span>
+        <div style="width: 50px;"></div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" id="tab-recibidos" onclick="showTab('recibidos')">RECIBIDOS</div>
+        <div class="tab" id="tab-nuevo" onclick="showTab('nuevo')">NUEVO MENSAJE</div>
+    </div>
+
+    <div class="container" id="view-recibidos">
+        <div id="lista-mensajes">Buscando mensajes...</div>
+    </div>
+
+    <div class="container hidden" id="view-nuevo">
+        <label>PARA (Selecciona uno o varios):</label>
+        <select id="destinatarios" multiple></select>
+        
+        <label>ASUNTO:</label>
+        <input type="text" id="asunto" placeholder="¿De qué trata el mensaje?">
+        
+        <label>MENSAJE:</label>
+        <textarea id="contenido" rows="6" placeholder="Escribe aquí tu mensaje..."></textarea>
+        
+        <label>ADJUNTO (Opcional):</label>
+        <input type="text" id="adjunto" placeholder="URL de imagen o archivo">
+        
+        <button class="btn-enviar" id="btn-send">ENVIAR AHORA</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, query, where, onSnapshot, getDocs, doc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCAWM6KyEYGozVP6JfY_EpGv6kGxjWzzPk",
+            authDomain: "studio-4610881504-8afcf.firebaseapp.com",
+            projectId: "studio-4610881504-8afcf",
+            messagingSenderId: "330090444658",
+            appId: "1:330090444658:web:0ab0c98f2ab0235af74feb"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const messaging = getMessaging(app);
+        
+        const myUid = new URLSearchParams(window.location.search).get('uid');
+        const vapidKey = 'BMuyXKcNogFOCdszgt_9gQl9OIb34ihF8Poyn2rPUKSrVpR2-3nfAoLcrPETSxAfIXCqJdlocaQmE88P_c11tH4';
+
+        if (!myUid) window.location.href = "index.html";
+
+        // --- 1. ACTIVAR NOTIFICACIONES PUSH ---
+        async function initNotifications() {
+            try {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    const token = await getToken(messaging, { vapidKey: vapidKey });
+                    if (token) {
+                        await updateDoc(doc(db, "users", myUid), { fcmToken: token });
+                    }
+                }
+            } catch (err) { console.log("Notificaciones no activadas"); }
+        }
+        initNotifications();
+
+        // --- 2. GESTIÓN DE TABS ---
+        window.showTab = (tab) => {
+            document.getElementById('view-recibidos').classList.toggle('hidden', tab !== 'recibidos');
+            document.getElementById('view-nuevo').classList.toggle('hidden', tab !== 'nuevo');
+            document.getElementById('tab-recibidos').classList.toggle('active', tab === 'recibidos');
+            document.getElementById('tab-nuevo').classList.toggle('active', tab === 'nuevo');
+        };
+
+        // --- 3. CARGAR CONTACTOS SEGÚN ROL ---
+        async function loadContacts() {
+            const userSnap = await getDocs(query(collection(db, "users"), where("__name__", "==", myUid)));
+            if (userSnap.empty) return;
+            const myRoles = userSnap.docs[0].data().roles || [];
+            
+            let q;
+            if (myRoles.includes("Profesorado") || myRoles.includes("Dirección")) {
+                q = query(collection(db, "users"));
+            } else {
+                q = query(collection(db, "users"), where("roles", "array-contains", "Profesorado"));
+            }
+
+            const snap = await getDocs(q);
+            const select = document.getElementById('destinatarios');
+            snap.forEach(d => {
+                if (d.id !== myUid) {
+                    const opt = document.createElement('option');
+                    opt.value = d.id;
+                    opt.textContent = d.data().displayName || d.id;
+                    select.appendChild(opt);
+                }
+            });
+        }
+        loadContacts();
+
+        // --- 4. ENVIAR MENSAJE ---
+        document.getElementById('btn-send').onclick = async () => {
+            const dests = Array.from(document.getElementById('destinatarios').selectedOptions).map(o => o.value);
+            const asunto = document.getElementById('asunto').value;
+            const cont = document.getElementById('contenido').value;
+            const adj = document.getElementById('adjunto').value;
+
+            if (dests.length === 0 || !asunto || !cont) return;
+
+            await addDoc(collection(db, "mensajeriaGeneral"), {
+                remitenteId: myUid,
+                enviadoHacia: dests,
+                asunto: asunto,
+                contenido: cont,
+                adjuntado: adj || null,
+                timestamp: serverTimestamp()
+            });
+
+            // Limpiar y volver
+            document.getElementById('asunto').value = "";
+            document.getElementById('contenido').value = "";
+            showTab('recibidos');
+        };
+
+        // --- 5. ESCUCHAR MENSAJES RECIBIDOS ---
+        const qRec = query(collection(db, "mensajeriaGeneral"), where("enviadoHacia", "array-contains", myUid));
+        onSnapshot(qRec, (snap) => {
+            const lista = document.getElementById('lista-messages');
+            const cont = document.getElementById('lista-mensajes');
+            cont.innerHTML = snap.empty ? "No tienes mensajes nuevos." : "";
+            
+            snap.forEach(doc => {
+                const d = doc.data();
+                const div = document.createElement('div');
+                div.className = "msg-card";
+                div.innerHTML = `
+                    <div class="msg-header"><span>De: ${d.remitenteId}</span></div>
+                    <span class="msg-asunto">${d.asunto}</span>
+                    <p class="msg-cont">${d.contenido}</p>
+                    ${d.adjuntado ? `<br><a href="${d.adjuntado}" target="_blank" style="color:#f0ad4e; font-size:12px;">📎 Ver adjunto</a>` : ''}
+                `;
+                cont.appendChild(div);
+            });
+        });
+
+        // Notificación en primer plano
+        onMessage(messaging, (payload) => {
+            // Esto solo se ejecuta si el usuario tiene la web abierta
+            console.log("Notificación recibida en primer plano");
+        });
+    </script>
+</body>
+</html>

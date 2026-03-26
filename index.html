@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Login</title>
+    <style>
+        body { margin: 0; padding: 0; font-family: sans-serif; background: #fff; display: flex; flex-direction: column; align-items: center; height: 100vh; }
+        .login-container { width: 85%; margin-top: 60px; display: flex; flex-direction: column; align-items: center; }
+        .logo { width: 160px; margin-bottom: 40px; }
+        .input-group { width: 100%; position: relative; margin-bottom: 30px; }
+        input { width: 100%; border: none; border-bottom: 2px solid #ccc; padding: 10px 0; font-size: 16px; outline: none; background: transparent; }
+        input:focus { border-bottom: 2px solid #000; }
+        .input-icon { position: absolute; right: 0; bottom: 10px; width: 20px; opacity: 0.5; }
+        #error-message { color: red; font-size: 13px; text-align: center; margin-bottom: 20px; min-height: 32px; }
+        button { width: 100%; padding: 15px; background: #000; color: #fff; border: none; border-radius: 4px; font-weight: bold; text-transform: uppercase; }
+        
+        /* Overlay de carga */
+        #loader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); display: none; justify-content: center; align-items: center; z-index: 999; }
+        .loader-card { background: white; width: 100px; height: 100px; border-radius: 10px; display: flex; justify-content: center; align-items: center; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #333; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <img src="https://i.ibb.co/Z1mqg27D/imagenes-Servlet.webp" class="logo">
+        <div class="input-group">
+            <input type="email" id="email" placeholder="IDENTIFICACIÓN">
+        </div>
+        <div class="input-group">
+            <input type="password" id="password" placeholder="CONTRASEÑA">
+            <img src="https://i.ibb.co/8LsF4Nrd/tecla-Iconowebn.webp" class="input-icon">
+        </div>
+        <div id="error-message"></div>
+        <button id="loginBtn">Entrar</button>
+    </div>
+
+    <div id="loader-overlay"><div class="loader-card"><div class="spinner"></div></div></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCAWM6KyEYGozVP6JfY_EpGv6kGxjWzzPk",
+            authDomain: "studio-4610881504-8afcf.firebaseapp.com",
+            projectId: "studio-4610881504-8afcf",
+            storageBucket: "studio-4610881504-8afcf.firebasestorage.app",
+            messagingSenderId: "330090444658",
+            appId: "1:330090444658:web:0ab0c98f2ab0235af74feb"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) window.location.href = `acceso_concedido.html?uid=${user.uid}`;
+        });
+
+        document.getElementById('loginBtn').addEventListener('click', async () => {
+            const email = document.getElementById('email').value;
+            const pass = document.getElementById('password').value;
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.innerText = "";
+
+            try {
+                await setPersistence(auth, browserLocalPersistence);
+                const res = await signInWithEmailAndPassword(auth, email, pass);
+                document.getElementById('loader-overlay').style.display = "flex";
+                setTimeout(() => {
+                    window.location.href = `acceso_concedido.html?uid=${res.user.uid}`;
+                }, 2000);
+            } catch (e) {
+                errorDiv.innerText = "Los datos introducidos en IDENTIFICACIÓN y/o CONTRASEÑA son incorrectos.";
+            }
+        });
+    </script>
+</body>
+</html>
