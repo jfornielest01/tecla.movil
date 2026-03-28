@@ -5,150 +5,231 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mensajería TECLA</title>
     <style>
-        :root { --naranja: #fff5ed; --borde: #f0e4d7; --texto: #444; }
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #fff; color: var(--texto); overflow-x: hidden; }
+        :root { --naranja: #fff5ed; --borde: #f0e4d7; --texto: #444; --verde: #4caf50; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #fff; color: var(--texto); -webkit-tap-highlight-color: transparent; }
         
+        /* HEADER FIXED */
         .header { 
             padding: 15px; background: var(--naranja); display: flex; 
             align-items: center; justify-content: space-between; border-bottom: 1px solid var(--borde);
-            position: sticky; top: 0; z-index: 10;
+            position: sticky; top: 0; z-index: 100;
         }
         .btn-back { background: #fff; border: 1px solid #ddd; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
 
-        .tabs { display: flex; border-bottom: 1px solid var(--borde); background: #fff; }
-        .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; font-weight: bold; color: #999; transition: 0.3s; }
+        /* TABS */
+        .tabs { display: flex; border-bottom: 1px solid var(--borde); background: #fff; position: sticky; top: 61px; z-index: 90; }
+        .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; font-weight: bold; color: #aaa; font-size: 13px; text-transform: uppercase; }
         .tab.active { color: #333; border-bottom: 3px solid #f0ad4e; background: var(--naranja); }
 
         .container { padding: 20px; max-width: 600px; margin: auto; box-sizing: border-box; }
         .hidden { display: none; }
 
-        label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: bold; color: #666; }
+        /* FORMULARIO */
+        label { display: block; margin-bottom: 5px; font-size: 11px; font-weight: bold; color: #999; text-transform: uppercase; }
         input, textarea, select { 
-            width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; 
-            border: 1px solid var(--borde); box-sizing: border-box; font-size: 15px; outline: none;
+            width: 100%; padding: 14px; margin-bottom: 15px; border-radius: 10px; 
+            border: 1px solid var(--borde); box-sizing: border-box; font-size: 16px; outline: none; background: #fafafa;
         }
-        select[multiple] { height: 150px; }
+        select[multiple] { height: 160px; }
         .btn-enviar { 
-            width: 100%; background: #4caf50; color: white; border: none; 
-            padding: 16px; border-radius: 12px; font-size: 16px; font-weight: bold; 
-            cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            width: 100%; background: var(--verde); color: white; border: none; 
+            padding: 18px; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
         }
+        .btn-enviar:active { transform: scale(0.97); }
 
+        /* LISTA MENSAJES */
         .msg-card { 
-            padding: 15px; border: 1px solid var(--borde); border-radius: 12px; 
-            margin-bottom: 12px; background: #fff;
+            padding: 18px; border: 1px solid var(--borde); border-radius: 15px; 
+            margin-bottom: 15px; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.03);
         }
+        .msg-header { font-size: 10px; color: #bbb; margin-bottom: 8px; font-weight: bold; letter-spacing: 0.5px; }
+        .msg-asunto { font-weight: bold; font-size: 17px; color: #222; display: block; margin-bottom: 6px; }
+        .msg-cont { font-size: 15px; color: #555; margin: 0; line-height: 1.5; }
+        .msg-adj { display: inline-block; margin-top: 10px; font-size: 12px; color: #f0ad4e; text-decoration: none; font-weight: bold; border: 1px solid #f0ad4e; padding: 5px 10px; border-radius: 5px; }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <button class="btn-back" onclick="window.history.back()">‹ Volver</button>
-    <span style="font-weight: bold;">MENSAJERÍA</span>
-    <div style="width: 50px;"></div>
-</div>
+    <div class="header">
+        <button class="btn-back" onclick="window.history.back()">‹ VOLVER</button>
+        <span style="font-weight: bold; letter-spacing: 1px;">MENSAJERÍA</span>
+        <div style="width: 50px;"></div>
+    </div>
 
-<div class="tabs">
-    <div class="tab active" id="tab-recibidos" onclick="showTab('recibidos')">RECIBIDOS</div>
-    <div class="tab" id="tab-nuevo" onclick="showTab('nuevo')">NUEVO MENSAJE</div>
-</div>
+    <div class="tabs">
+        <div class="tab active" id="tab-recibidos" onclick="showTab('recibidos')">RECIBIDOS</div>
+        <div class="tab" id="tab-nuevo" onclick="showTab('nuevo')">NUEVO</div>
+    </div>
 
-<div class="container" id="view-recibidos">
-    <div id="lista-mensajes">Buscando mensajes...</div>
-</div>
+    <div class="container" id="view-recibidos">
+        <div id="lista-mensajes" style="text-align: center; color: #ccc; margin-top: 50px; font-style: italic;">Buscando mensajes...</div>
+    </div>
 
-<div class="container hidden" id="view-nuevo">
-    <select id="destinatarios" multiple></select>
-    <input type="text" id="asunto" placeholder="Asunto">
-    <textarea id="contenido"></textarea>
-    <input type="text" id="adjunto">
-    <button id="btn-send">ENVIAR</button>
-</div>
+    <div class="container hidden" id="view-nuevo">
+        <label>Enviar a (puedes elegir varios):</label>
+        <select id="destinatarios" multiple></select>
+        
+        <label>Asunto del mensaje:</label>
+        <input type="text" id="asunto" placeholder="Ej: Justificante médico">
+        
+        <label>Contenido del mensaje:</label>
+        <textarea id="contenido" rows="6" placeholder="Escribe aquí..."></textarea>
+        
+        <label>URL Adjunto (opcional):</label>
+        <input type="text" id="adjunto" placeholder="https://ejemplo.com/archivo.pdf">
+        
+        <button class="btn-enviar" id="btn-send">ENVIAR MENSAJE</button>
+    </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, query, where, onSnapshot, getDocs, doc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js";
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, query, where, onSnapshot, getDocs, doc, getDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js";
 
-const firebaseConfig = {
-    apiKey: "AIzaSyCAWM6KyEYGozVP6JfY_EpGv6kGxjWzzPk",
-    authDomain: "studio-4610881504-8afcf.firebaseapp.com",
-    projectId: "studio-4610881504-8afcf",
-    messagingSenderId: "330090444658",
-    appId: "1:330090444658:web:0ab0c98f2ab0235af74feb"
-};
+        const firebaseConfig = {
+            apiKey: "AIzaSyCAWM6KyEYGozVP6JfY_EpGv6kGxjWzzPk",
+            authDomain: "studio-4610881504-8afcf.firebaseapp.com",
+            projectId: "studio-4610881504-8afcf",
+            messagingSenderId: "330090444658",
+            appId: "1:330090444658:web:0ab0c98f2ab0235af74feb"
+        };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const messaging = getMessaging(app);
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const messaging = getMessaging(app);
+        
+        const params = new URLSearchParams(window.location.search);
+        const myUid = params.get('uid');
+        const vapidKey = 'BMuyXKcNogFOCdszgt_9gQl9OIb34ihF8Poyn2rPUKSrVpR2-3nfAoLcrPETSxAfIXCqJdlocaQmE88P_c11tH4';
 
-const myUid = new URLSearchParams(window.location.search).get('uid');
-const vapidKey = 'BMuyXKcNogFOCdszgt_9gQl9OIb34ihF8Poyn2rPUKSrVpR2-3nfAoLcrPETSxAfIXCqJdlocaQmE88P_c11tH4';
+        if (!myUid) window.location.href = "index.html";
 
+        // --- REGISTRO DE SERVICE WORKER ---
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./firebase-messaging-sw.js')
+            .then(reg => console.log("Worker registrado"))
+            .catch(err => console.log("Error worker", err));
+        }
 
-// 🔥 SERVICE WORKER
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/firebase-messaging-sw.js');
-}
+        // --- ACTIVAR NOTIFICACIONES PUSH ---
+        async function activarPush() {
+            try {
+                const status = await Notification.requestPermission();
+                if (status === 'granted') {
+                    const token = await getToken(messaging, { vapidKey: vapidKey });
+                    if (token) {
+                        await updateDoc(doc(db, "users", myUid), { fcmToken: token });
+                    }
+                }
+            } catch (e) { console.log("Push error:", e); }
+        }
+        activarPush();
 
+        // --- NAVEGACIÓN ---
+        window.showTab = (tab) => {
+            document.getElementById('view-recibidos').classList.toggle('hidden', tab !== 'recibidos');
+            document.getElementById('view-nuevo').classList.toggle('hidden', tab !== 'nuevo');
+            document.getElementById('tab-recibidos').classList.toggle('active', tab === 'recibidos');
+            document.getElementById('tab-nuevo').classList.toggle('active', tab === 'nuevo');
+        };
 
-// 🔥 NOTIFICACIONES
-async function initNotifications() {
-    const permission = await Notification.requestPermission();
+        // --- CARGAR CONTACTOS ---
+        async function cargarContactos() {
+            const select = document.getElementById('destinatarios');
+            try {
+                const userSnap = await getDoc(doc(db, "users", myUid));
+                if (!userSnap.exists()) return;
+                
+                const roles = userSnap.data().roles || [];
+                let q;
 
-    if (permission === "granted") {
-        const token = await getToken(messaging, {
-            vapidKey,
-            serviceWorkerRegistration: await navigator.serviceWorker.ready
+                // Lógica de roles: Profe ve a todos, Padres ven a Profes
+                if (roles.includes("Profesorado") || roles.includes("Dirección")) {
+                    q = query(collection(db, "users"));
+                } else {
+                    q = query(collection(db, "users"), where("roles", "array-contains", "Profesorado"));
+                }
+
+                const snap = await getDocs(q);
+                select.innerHTML = ""; 
+
+                if (snap.empty) {
+                    select.innerHTML = "<option disabled>Sin contactos disponibles</option>";
+                    return;
+                }
+
+                snap.forEach(d => {
+                    if (d.id !== myUid) {
+                        const opt = document.createElement('option');
+                        opt.value = d.id;
+                        opt.textContent = d.data().displayName || d.id;
+                        select.appendChild(opt);
+                    }
+                });
+            } catch (err) {
+                select.innerHTML = "<option disabled>Error de conexión</option>";
+            }
+        }
+        cargarContactos();
+
+        // --- ENVIAR ---
+        document.getElementById('btn-send').onclick = async () => {
+            const btn = document.getElementById('btn-send');
+            const dests = Array.from(document.getElementById('destinatarios').selectedOptions).map(o => o.value);
+            const asu = document.getElementById('asunto').value;
+            const msg = document.getElementById('contenido').value;
+            const adj = document.getElementById('adjunto').value;
+
+            if (dests.length === 0 || !asu || !msg) return;
+
+            btn.disabled = true;
+            btn.innerText = "ENVIANDO...";
+
+            try {
+                await addDoc(collection(db, "mensajeriaGeneral"), {
+                    remitenteId: myUid,
+                    enviadoHacia: dests,
+                    asunto: asu,
+                    contenido: msg,
+                    adjuntado: adj || null,
+                    fecha: serverTimestamp()
+                });
+
+                document.getElementById('asunto').value = "";
+                document.getElementById('contenido').value = "";
+                btn.disabled = false;
+                btn.innerText = "ENVIAR MENSAJE";
+                showTab('recibidos');
+            } catch (e) {
+                btn.disabled = false;
+                btn.innerText = "REINTENTAR";
+            }
+        };
+
+        // --- RECIBIR ---
+        const qRec = query(collection(db, "mensajeriaGeneral"), where("enviadoHacia", "array-contains", myUid));
+        onSnapshot(qRec, (snap) => {
+            const box = document.getElementById('lista-mensajes');
+            box.innerHTML = snap.empty ? "No tienes mensajes nuevos." : "";
+            
+            snap.forEach(doc => {
+                const d = doc.data();
+                const div = document.createElement('div');
+                div.className = "msg-card";
+                div.innerHTML = `
+                    <div class="msg-header">REMITENTE: ${d.remitenteId}</div>
+                    <span class="msg-asunto">${d.asunto}</span>
+                    <p class="msg-cont">${d.contenido}</p>
+                    ${d.adjuntado ? `<a href="${d.adjuntado}" target="_blank" class="msg-adj">📎 VER ADJUNTO</a>` : ''}
+                `;
+                box.prepend(div);
+            });
         });
 
-        if (token) {
-            await updateDoc(doc(db, "users", myUid), { fcmToken: token });
-            console.log("TOKEN:", token);
-        }
-    }
-}
-initNotifications();
-
-
-// 🔥 FOREGROUND PUSH
-onMessage(messaging, (payload) => {
-    new Notification(payload.notification.title, {
-        body: payload.notification.body
-    });
-});
-
-
-// --- RESTO TU APP IGUAL ---
-window.showTab = (tab) => {
-    document.getElementById('view-recibidos').classList.toggle('hidden', tab !== 'recibidos');
-    document.getElementById('view-nuevo').classList.toggle('hidden', tab !== 'nuevo');
-};
-
-const qRec = query(collection(db, "mensajeriaGeneral"), where("enviadoHacia", "array-contains", myUid));
-onSnapshot(qRec, (snap) => {
-    const cont = document.getElementById('lista-mensajes');
-    cont.innerHTML = "";
-
-    snap.forEach(doc => {
-        const d = doc.data();
-        const div = document.createElement('div');
-        div.className = "msg-card";
-        div.innerHTML = `<b>${d.asunto}</b><p>${d.contenido}</p>`;
-        cont.appendChild(div);
-    });
-});
-
-document.getElementById('btn-send').onclick = async () => {
-    await addDoc(collection(db, "mensajeriaGeneral"), {
-        remitenteId: myUid,
-        enviadoHacia: [],
-        asunto: document.getElementById('asunto').value,
-        contenido: document.getElementById('contenido').value,
-        timestamp: serverTimestamp()
-    });
-};
-</script>
-
+        onMessage(messaging, (payload) => {
+            console.log("Notificación en vivo:", payload);
+        });
+    </script>
 </body>
 </html>
